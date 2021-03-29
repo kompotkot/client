@@ -17,6 +17,7 @@ import traceback
 
 import click
 from click.exceptions import ClickException
+from humbug.report import Report
 
 # pycreds has a find_executable that works in windows
 from dockerpycreds.utils import find_executable
@@ -33,6 +34,11 @@ from wandb import wandb_sdk
 from wandb.apis import InternalApi, PublicApi
 from wandb.compat import tempfile
 from wandb.integration.magic import magic_install
+from wandb.errors.reporter import (
+    wandb_reporter,
+    save_reporting_config,
+    get_reporting_config,
+)
 
 # from wandb.old.core import wandb_dir
 from wandb.old.settings import Settings
@@ -276,6 +282,22 @@ def superagent(project=None, entity=None, agent_spec=None):
     wandb.superagent.run_agent(agent_spec)
 
 
+@cli.command(context_settings=CONTEXT, help="Reporter")
+@click.option("--on/--off", help="Turn crash report on/off")
+@display_error
+def reporting(on):
+    """
+    Enable or disable sending crash reports to W&B.
+    """
+    report = Report(
+        title="Consent change",
+        tags=wandb_reporter.system_tags(),
+        content="Consent? `{}`".format(on),
+    )
+    wandb_reporter.publish(report)
+    save_reporting_config(on)
+
+
 @cli.command(
     context_settings=CONTEXT, help="Configure a directory with Weights & Biases"
 )
@@ -397,7 +419,21 @@ def init(ctx, project, entity, reset, mode):
     util.mkdir_exists_ok(wandb_dir())
     with open(os.path.join(wandb_dir(), ".gitignore"), "w") as file:
         file.write("*\n!settings")
-
+    # Notify about reporing
+    click.echo(
+        textwrap.dedent(
+            """
+            Privacy policy:
+            We collect basic system information and crash reports so that we can keep
+            improving your experience using W&B to work with your data.
+            You can find out more by reading our privacy policy:
+                https://wandb.ai/site
+            If you would like to opt out of reporting crashes and system information,
+            run the following command:
+                $ wandb reporting --off
+            """
+        )
+    )
     click.echo(
         click.style("This directory is configured!  Next, track a run:\n", fg="green")
         + textwrap.dedent(
