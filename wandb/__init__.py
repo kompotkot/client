@@ -27,6 +27,7 @@ _wandb_module = "wandb"
 import sys
 
 from wandb.errors import Error
+from wandb.errors.reporter import wandb_reporter
 
 # This needs to be early as other modules call it.
 from wandb.errors.term import termsetup, termlog, termerror, termwarn
@@ -92,6 +93,9 @@ from wandb import plot
 from wandb import plots  # deprecating this
 from wandb.integration.sagemaker import sagemaker_auth
 
+# Reporting
+wandb_reporter.system_report(publish=True, tags=[__version__])
+wandb_reporter.setup_excepthook(publish=True, tags=[__version__])
 
 # Used to make sure we don't use some code in the incorrect process context
 _IS_INTERNAL_PROCESS = False
